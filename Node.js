@@ -1,1 +1,1 @@
-npm install -g vercel
+
