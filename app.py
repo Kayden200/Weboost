@@ -14,8 +14,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "b5c6ba00bff9f5bdaef120129a560466b
 # Configure session storage using the filesystem
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_FILE_DIR"] = "./flask_session"  # Where session files are stored
-Session(app)  # Activate Flask-Session
+app.config["SESSION_FILE_DIR"] = "./flask_session"
+Session(app)
 
 # Machine Liker URLs
 BASE_URL = "https://machineliker.net"
@@ -47,35 +47,41 @@ def load_history():
             return json.load(f)
     return []
 
-def login_with_fbstate(fbstate_json):
-    """Log in to Machine Liker using extracted Facebook session cookies."""
+def login_with_email(email, password):
+    """Log in to Facebook using email and password, then get session cookies."""
     try:
-        # Convert JSON string to dictionary
-        fbstate = json.loads(fbstate_json)
+        login_url = "https://www.facebook.com/login/device-based/regular/login/"
+        session_req = requests.Session()
 
-        # Extract `c_user` and `xs`
-        c_user = next((item["value"] for item in fbstate if item["key"] == "c_user"), None)
-        xs = next((item["value"] for item in fbstate if item["key"] == "xs"), None)
+        # Get initial login page (to fetch any required tokens)
+        response = session_req.get(login_url, headers=HEADERS)
+        lsd_token = re.search(r'name="lsd" value="(.*?)"', response.text)
 
-        if not c_user or not xs:
-            return None  # Missing required cookies
+        if not lsd_token:
+            print("❌ Error: Failed to get login token.")
+            return None
+        
+        lsd_token = lsd_token.group(1)
 
-        # Create a valid Facebook session cookie
-        cookies = {
-            "c_user": c_user,
-            "xs": xs
+        # Prepare login data
+        data = {
+            "email": email,
+            "pass": password,
+            "lsd": lsd_token,
+            "login": "Log In"
         }
 
-        # Start session with Machine Liker
-        session_req = requests.Session()
-        response = session_req.get(LOGIN_URL, headers=HEADERS, cookies=cookies)
+        # Send login request
+        response = session_req.post(login_url, headers=HEADERS, data=data)
 
-        # Validate login response
-        user_id_match = re.search(r'"id":"(\d+)"', response.text)
-        if user_id_match:
+        # Check if login was successful
+        if "c_user" in session_req.cookies and "xs" in session_req.cookies:
+            print("✅ Facebook login successful!")
             return session_req  # Successfully logged in
+        else:
+            print("❌ Error: Invalid email or password.")
     except Exception as e:
-        print(f"Login error: {e}")
+        print(f"❌ Unexpected error: {e}")
 
     return None  # Login failed
 
@@ -105,27 +111,29 @@ def boost_reactions(session_req, post_url, reactions):
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        fbstate = request.form.get("fbstate")
+        email = request.form.get("email")
+        password = request.form.get("password")
         post_url = request.form.get("post_url")
         reactions = request.form.getlist("reactions")
 
-        session_req = login_with_fbstate(fbstate)
+        session_req = login_with_email(email, password)
         if session_req:
-            session["fbstate"] = fbstate
+            session["email"] = email
+            session["password"] = password
             session["post_url"] = post_url
             session["reactions"] = reactions
             return redirect(url_for("boost"))
 
-        return render_template("index.html", error="Invalid fbstate!")
+        return render_template("index.html", error="Invalid email or password!")
 
     return render_template("index.html")
 
 @app.route("/boost")
 def boost():
-    if "fbstate" not in session:
+    if "email" not in session or "password" not in session:
         return redirect(url_for("index"))
 
-    session_req = login_with_fbstate(session["fbstate"])
+    session_req = login_with_email(session["email"], session["password"])
     if not session_req:
         return render_template("index.html", error="Session expired, please log in again.")
 
