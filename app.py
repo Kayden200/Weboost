@@ -6,7 +6,9 @@ import json
 import os
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
+
+# Set your secret key
+app.secret_key = "b5c6ba00bff9f5bdaef120129a560466bce3db23116f583a042f5540f55be8b9"
 app.config["SESSION_TYPE"] = "filesystem"
 
 # Machine Liker URLs
