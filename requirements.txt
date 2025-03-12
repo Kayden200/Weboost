@@ -2,5 +2,5 @@ flask
 flask-session
 requests
 selenium
-webdriver-manager
+undetected-chromedriver
 gunicorn
