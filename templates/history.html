@@ -1,21 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>Boost History</title>
 </head>
 <body>
-    <h1>Boost History</h1>
-    <table>
-        <tr><th>Post URL</th><th>Reactions</th><th>Timestamp</th></tr>
-        {% for item in history %}
-        <tr>
-            <td><a href="{{ item.post_url }}" target="_blank">{{ item.post_url }}</a></td>
-            <td>{{ ", ".join(item.reactions) }}</td>
-            <td>{{ item.timestamp }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    <a href="/">Go Back</a>
+    <h2>Reaction Boost History</h2>
+
+    {% if history %}
+        <ul>
+            {% for item in history %}
+                <li>
+                    <strong>Post:</strong> <a href="{{ item.post_url }}" target="_blank">{{ item.post_url }}</a><br>
+                    <strong>Reactions:</strong> {{ item.reactions }}<br>
+                    <strong>Time:</strong> {{ item.timestamp }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No boost history found.</p>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('index') }}">Go Back</a>
 </body>
 </html>
