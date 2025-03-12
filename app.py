@@ -5,11 +5,9 @@ import re
 import time
 from flask import Flask, render_template, request, session, redirect, url_for
 from flask_session import Session
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 
@@ -28,7 +26,7 @@ LOGIN_URL = f"{BASE_URL}/login"
 REACTION_URL = f"{BASE_URL}/auto-reactions"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 12; SM-A037F) AppleWebKit/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
 HISTORY_FILE = "history.json"
@@ -53,15 +51,9 @@ def load_history():
     return []
 
 def login_with_email(email, password):
-    """Log in to Facebook using Selenium and get session cookies."""
+    """Log in to Facebook using undetected ChromeDriver and get session cookies."""
     try:
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")  # Run without GUI
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+        driver = uc.Chrome(headless=True)
         driver.get("https://www.facebook.com/login")
 
         time.sleep(3)
@@ -74,7 +66,7 @@ def login_with_email(email, password):
         password_input.send_keys(password)
         password_input.send_keys(Keys.RETURN)
 
-        time.sleep(5)  # Wait for Facebook to log in
+        time.sleep(5)  # Wait for login
 
         # Get session cookies
         cookies = {cookie['name']: cookie['value'] for cookie in driver.get_cookies()}
@@ -82,7 +74,7 @@ def login_with_email(email, password):
 
         if "c_user" in cookies and "xs" in cookies:
             print("✅ Facebook login successful!")
-            return cookies  # Return session cookies
+            return cookies
         else:
             print("❌ Error: Wrong email or password.")
             return None
