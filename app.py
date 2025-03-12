@@ -53,12 +53,19 @@ def load_history():
 def login_with_email(email, password):
     """Log in to Facebook using undetected ChromeDriver and get session cookies."""
     try:
-        driver = uc.Chrome(headless=True)
+        # Use undetected ChromeDriver to bypass Facebook detection
+        options = uc.ChromeOptions()
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+
+        driver = uc.Chrome(options=options, headless=False)  # Keep headless=False for debugging
         driver.get("https://www.facebook.com/login")
 
         time.sleep(3)
 
-        # Find email and password input fields
         email_input = driver.find_element(By.ID, "email")
         password_input = driver.find_element(By.ID, "pass")
 
@@ -68,6 +75,9 @@ def login_with_email(email, password):
 
         time.sleep(5)  # Wait for login
 
+        # Take a screenshot for debugging
+        driver.save_screenshot("login_debug.png")
+
         # Get session cookies
         cookies = {cookie['name']: cookie['value'] for cookie in driver.get_cookies()}
         driver.quit()
@@ -76,7 +86,7 @@ def login_with_email(email, password):
             print("✅ Facebook login successful!")
             return cookies
         else:
-            print("❌ Error: Wrong email or password.")
+            print("❌ Error: Login failed! Check `login_debug.png` for issues.")
             return None
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
