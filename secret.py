@@ -1,1 +1,2 @@
-python -c "import secrets; print(secrets.token_hex(32))"
+import secrets
+print(secrets.token_hex(32))
