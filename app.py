@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, session, redirect, url_for
+from flask_session import Session  # Import Flask-Session
 import requests
 import re
 import time
@@ -7,9 +8,14 @@ import os
 
 app = Flask(__name__)
 
-# Set your secret key
+# Set secret key
 app.secret_key = "b5c6ba00bff9f5bdaef120129a560466bce3db23116f583a042f5540f55be8b9"
+
+# Configure session to use the filesystem
 app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_FILE_DIR"] = "./flask_session"  # Where session files will be stored
+Session(app)  # Initialize the session extension
 
 # Machine Liker URLs
 BASE_URL = "https://machineliker.net"
