@@ -4,7 +4,12 @@ import requests
 import re
 import time
 from flask import Flask, render_template, request, session, redirect, url_for
-from flask_session import Session  # Import Flask-Session
+from flask_session import Session
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 
@@ -48,51 +53,62 @@ def load_history():
     return []
 
 def login_with_email(email, password):
-    """Log in to Facebook using email and password, then get session cookies."""
+    """Log in to Facebook using Selenium and get session cookies."""
     try:
-        login_url = "https://www.facebook.com/login/device-based/regular/login/"
-        session_req = requests.Session()
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")  # Run Chrome without GUI
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
-        # Get initial login page (to fetch any required tokens)
-        response = session_req.get(login_url, headers=HEADERS)
-        lsd_token = re.search(r'name="lsd" value="(.*?)"', response.text)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.get("https://www.facebook.com/login")
 
-        if not lsd_token:
-            print("❌ Error: Failed to get login token.")
-            return None
-        
-        lsd_token = lsd_token.group(1)
+        # Wait for page to load
+        time.sleep(3)
 
-        # Prepare login data
-        data = {
-            "email": email,
-            "pass": password,
-            "lsd": lsd_token,
-            "login": "Log In"
-        }
+        # Find and fill email and password fields
+        email_input = driver.find_element(By.ID, "email")
+        password_input = driver.find_element(By.ID, "pass")
 
-        # Send login request
-        response = session_req.post(login_url, headers=HEADERS, data=data)
+        email_input.send_keys(email)
+        password_input.send_keys(password)
+        password_input.send_keys(Keys.RETURN)
+
+        # Wait for Facebook to process login
+        time.sleep(5)
 
         # Check if login was successful
-        if "c_user" in session_req.cookies and "xs" in session_req.cookies:
+        cookies = {cookie['name']: cookie['value'] for cookie in driver.get_cookies()}
+        driver.quit()
+
+        if "c_user" in cookies and "xs" in cookies:
             print("✅ Facebook login successful!")
-            return session_req  # Successfully logged in
+            return cookies  # Return session cookies
         else:
-            print("❌ Error: Invalid email or password.")
+            print("❌ Error: Wrong email or password.")
+            return None
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
+        return None
 
-    return None  # Login failed
+def boost_reactions(email, password, post_url, reactions):
+    """Login, get session, and send reaction request."""
+    session_cookies = login_with_email(email, password)
 
-def boost_reactions(session_req, post_url, reactions):
-    """Send reaction request to Machine Liker."""
+    if not session_cookies:
+        return "❌ Login failed! Check email and password."
+
+    # Create session with cookies
+    session_req = requests.Session()
+    session_req.cookies.update(session_cookies)
+
     try:
         get_token_page = session_req.get(REACTION_URL).text
         token_match = re.search(r'name="_token" value="(.*?)"', get_token_page)
 
         if not token_match:
-            return "Failed to get token"
+            return "❌ Failed to get token."
 
         token = token_match.group(1)
         data = {"url": post_url, "limit": "50", "reactions[]": reactions, "_token": token}
@@ -100,13 +116,13 @@ def boost_reactions(session_req, post_url, reactions):
 
         if "Order Submitted" in response:
             save_history(post_url, reactions)  # Save to history
-            return "Reactions sent successfully!"
+            return "✅ Reactions sent successfully!"
         elif "Cooldown" in response:
             cooldown_time = int(re.search(r"please try again after (\d+) minutes", response).group(1)) * 60
-            return f"Cooldown: Wait {cooldown_time} seconds."
+            return f"⏳ Cooldown: Wait {cooldown_time} seconds."
     except Exception as e:
-        print(f"Boost error: {e}")
-    return "Reaction boost failed."
+        print(f"❌ Boost error: {e}")
+    return "❌ Reaction boost failed."
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -133,11 +149,7 @@ def boost():
     if "email" not in session or "password" not in session:
         return redirect(url_for("index"))
 
-    session_req = login_with_email(session["email"], session["password"])
-    if not session_req:
-        return render_template("index.html", error="Session expired, please log in again.")
-
-    result = boost_reactions(session_req, session["post_url"], session["reactions"])
+    result = boost_reactions(session["email"], session["password"], session["post_url"], session["reactions"])
     return render_template("boost.html", result=result)
 
 @app.route("/history")
