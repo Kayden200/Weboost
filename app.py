@@ -14,8 +14,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "b5c6ba00bff9f5bdaef120129a560466b
 # Configure session storage using the filesystem
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_FILE_DIR"] = "./flask_session"  # Where session files are stored
-Session(app)  # Activate Flask-Session
+app.config["SESSION_FILE_DIR"] = "./flask_session"
+Session(app)
 
 # Machine Liker URLs
 BASE_URL = "https://machineliker.net"
@@ -47,17 +47,17 @@ def load_history():
             return json.load(f)
     return []
 
-def login(fb_cookie):
-    """Log in to Machine Liker using Facebook session cookies."""
+def login_with_fbstate(fbstate):
+    """Log in to Machine Liker using fbstate."""
     try:
         session_req = requests.Session()
-        response = session_req.get(LOGIN_URL, headers=HEADERS, cookies={"cookie": fb_cookie})
+        response = session_req.get(LOGIN_URL, headers=HEADERS, cookies={"fbstate": fbstate})
 
         user_id_match = re.search(r'"id":"(\d+)"', response.text)
         if user_id_match:
             return session_req  # Successfully logged in
-    except:
-        pass
+    except Exception as e:
+        print(f"Login error: {e}")
     return None  # Login failed
 
 def boost_reactions(session_req, post_url, reactions):
@@ -79,34 +79,34 @@ def boost_reactions(session_req, post_url, reactions):
         elif "Cooldown" in response:
             cooldown_time = int(re.search(r"please try again after (\d+) minutes", response).group(1)) * 60
             return f"Cooldown: Wait {cooldown_time} seconds."
-    except:
-        pass
+    except Exception as e:
+        print(f"Boost error: {e}")
     return "Reaction boost failed."
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        fb_cookie = request.form.get("fb_cookie")
+        fbstate = request.form.get("fbstate")
         post_url = request.form.get("post_url")
         reactions = request.form.getlist("reactions")
 
-        session_req = login(fb_cookie)
+        session_req = login_with_fbstate(fbstate)
         if session_req:
-            session["fb_cookie"] = fb_cookie
+            session["fbstate"] = fbstate
             session["post_url"] = post_url
             session["reactions"] = reactions
             return redirect(url_for("boost"))
 
-        return render_template("index.html", error="Invalid Facebook session cookie!")
+        return render_template("index.html", error="Invalid fbstate!")
 
     return render_template("index.html")
 
 @app.route("/boost")
 def boost():
-    if "fb_cookie" not in session:
+    if "fbstate" not in session:
         return redirect(url_for("index"))
 
-    session_req = login(session["fb_cookie"])
+    session_req = login_with_fbstate(session["fbstate"])
     if not session_req:
         return render_template("index.html", error="Session expired, please log in again.")
 
