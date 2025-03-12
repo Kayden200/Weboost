@@ -1,9 +1,9 @@
 import os
-from flask import Flask, render_template, request, session, redirect, url_for
+import json
 import requests
 import re
 import time
-import json
+from flask import Flask, render_template, request, session, redirect, url_for
 from flask_session import Session  # Import Flask-Session
 
 app = Flask(__name__)
@@ -14,8 +14,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "b5c6ba00bff9f5bdaef120129a560466b
 # Configure session storage using the filesystem
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_FILE_DIR"] = "./flask_session"
-Session(app)
+app.config["SESSION_FILE_DIR"] = "./flask_session"  # Where session files are stored
+Session(app)  # Activate Flask-Session
 
 # Machine Liker URLs
 BASE_URL = "https://machineliker.net"
@@ -47,17 +47,36 @@ def load_history():
             return json.load(f)
     return []
 
-def login_with_fbstate(fbstate):
-    """Log in to Machine Liker using fbstate."""
+def login_with_fbstate(fbstate_json):
+    """Log in to Machine Liker using extracted Facebook session cookies."""
     try:
-        session_req = requests.Session()
-        response = session_req.get(LOGIN_URL, headers=HEADERS, cookies={"fbstate": fbstate})
+        # Convert JSON string to dictionary
+        fbstate = json.loads(fbstate_json)
 
+        # Extract `c_user` and `xs`
+        c_user = next((item["value"] for item in fbstate if item["key"] == "c_user"), None)
+        xs = next((item["value"] for item in fbstate if item["key"] == "xs"), None)
+
+        if not c_user or not xs:
+            return None  # Missing required cookies
+
+        # Create a valid Facebook session cookie
+        cookies = {
+            "c_user": c_user,
+            "xs": xs
+        }
+
+        # Start session with Machine Liker
+        session_req = requests.Session()
+        response = session_req.get(LOGIN_URL, headers=HEADERS, cookies=cookies)
+
+        # Validate login response
         user_id_match = re.search(r'"id":"(\d+)"', response.text)
         if user_id_match:
             return session_req  # Successfully logged in
     except Exception as e:
         print(f"Login error: {e}")
+
     return None  # Login failed
 
 def boost_reactions(session_req, post_url, reactions):
