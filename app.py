@@ -56,7 +56,7 @@ def login_with_email(email, password):
     """Log in to Facebook using Selenium and get session cookies."""
     try:
         options = webdriver.ChromeOptions()
-        options.add_argument("--headless")  # Run Chrome without GUI
+        options.add_argument("--headless")  # Run without GUI
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
@@ -64,10 +64,9 @@ def login_with_email(email, password):
         driver = webdriver.Chrome(service=service, options=options)
         driver.get("https://www.facebook.com/login")
 
-        # Wait for page to load
         time.sleep(3)
 
-        # Find and fill email and password fields
+        # Find email and password input fields
         email_input = driver.find_element(By.ID, "email")
         password_input = driver.find_element(By.ID, "pass")
 
@@ -75,10 +74,9 @@ def login_with_email(email, password):
         password_input.send_keys(password)
         password_input.send_keys(Keys.RETURN)
 
-        # Wait for Facebook to process login
-        time.sleep(5)
+        time.sleep(5)  # Wait for Facebook to log in
 
-        # Check if login was successful
+        # Get session cookies
         cookies = {cookie['name']: cookie['value'] for cookie in driver.get_cookies()}
         driver.quit()
 
