@@ -51,17 +51,14 @@ def load_history():
     return []
 
 def login_with_email(email, password):
-    """Log in to Facebook using undetected ChromeDriver and get session cookies."""
+    """Log in to Facebook using undetected ChromeDriver and always save a screenshot."""
     try:
-        # Use undetected ChromeDriver to bypass Facebook detection
         options = uc.ChromeOptions()
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument(
-            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-        driver = uc.Chrome(options=options, headless=False)  # Keep headless=False for debugging
+        driver = uc.Chrome(options=options, headless=False)
         driver.get("https://www.facebook.com/login")
 
         time.sleep(3)
@@ -75,8 +72,10 @@ def login_with_email(email, password):
 
         time.sleep(5)  # Wait for login
 
-        # Take a screenshot for debugging
-        driver.save_screenshot("login_debug.png")
+        # Force save the screenshot in Termux storage
+        screenshot_path = "/sdcard/login_debug.png"
+        driver.save_screenshot(screenshot_path)
+        print(f"✅ Screenshot saved at: {screenshot_path}")
 
         # Get session cookies
         cookies = {cookie['name']: cookie['value'] for cookie in driver.get_cookies()}
@@ -86,7 +85,7 @@ def login_with_email(email, password):
             print("✅ Facebook login successful!")
             return cookies
         else:
-            print("❌ Error: Login failed! Check `login_debug.png` for issues.")
+            print("❌ Error: Login failed! Check `/sdcard/login_debug.png` for issues.")
             return None
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
