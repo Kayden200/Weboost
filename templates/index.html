@@ -1,37 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facebook Reaction Booster</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        input, button { padding: 10px; margin: 10px; width: 80%; }
-    </style>
+    <title>Facebook Auto React</title>
 </head>
 <body>
-
-    <h1>Facebook Reaction Booster</h1>
-
+    <h2>Facebook Auto React</h2>
+    
     {% if error %}
         <p style="color: red;">{{ error }}</p>
     {% endif %}
 
-    <form action="/" method="post">
-        <input type="text" name="fb_cookie" placeholder="Enter Facebook Session Cookie" required><br>
-        <input type="text" name="post_url" placeholder="Enter Facebook Post URL" required><br>
+    <form method="POST">
+        <label>Email:</label>
+        <input type="text" name="email" required><br>
 
-        <h3>Select Reactions:</h3>
-        <label><input type="checkbox" name="reactions" value="like"> Like</label>
-        <label><input type="checkbox" name="reactions" value="love"> Love</label>
-        <label><input type="checkbox" name="reactions" value="care"> Care</label>
-        <label><input type="checkbox" name="reactions" value="haha"> Haha</label>
-        <label><input type="checkbox" name="reactions" value="wow"> Wow</label>
-        <label><input type="checkbox" name="reactions" value="sad"> Sad</label>
-        <label><input type="checkbox" name="reactions" value="angry"> Angry</label><br><br>
+        <label>Password:</label>
+        <input type="password" name="password" required><br>
+
+        <label>Post URL:</label>
+        <input type="text" name="post_url" required><br>
+
+        <label>Reactions:</label><br>
+        <input type="checkbox" name="reactions" value="like"> Like
+        <input type="checkbox" name="reactions" value="love"> Love
+        <input type="checkbox" name="reactions" value="care"> Care
+        <input type="checkbox" name="reactions" value="haha"> Haha
+        <input type="checkbox" name="reactions" value="wow"> Wow
+        <input type="checkbox" name="reactions" value="sad"> Sad
+        <input type="checkbox" name="reactions" value="angry"> Angry
+        <br>
 
         <button type="submit">Boost Reactions</button>
     </form>
 
+    <br>
+    <a href="{{ url_for('history') }}">View Boost History</a>
 </body>
 </html>
