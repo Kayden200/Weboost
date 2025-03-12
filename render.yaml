@@ -1,12 +1,10 @@
 services:
-  - name: Weboost
-    type: web
+  - type: web
+    name: weboost
     runtime: python
-    repo: https://github.com/Kayden200/Weboost
-    branch: main
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
-      - key: FLASK_ENV
-        value: production
-    plan: free
+      - key: SECRET_KEY
+        value: "b5c6ba00bff9f5bdaef120129a560466bce3db23116f583a042f5540f55be8b9"
