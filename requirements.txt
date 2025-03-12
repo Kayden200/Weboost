@@ -1,5 +1,6 @@
 flask
 flask-session
 requests
-colorama
+selenium
+webdriver-manager
 gunicorn
